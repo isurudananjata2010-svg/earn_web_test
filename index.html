@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>EarnFlow USA | Type & Earn Real Cash</title>
+    <!-- Google Fonts & Font Awesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- Firebase SDKs (Modular v9+) -->
+    <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-firestore-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: radial-gradient(circle at 10% 20%, #0a0f1e, #03060c);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1rem;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* animated bg elements */
+        .bg-glow {
+            position: fixed;
+            width: 70vw;
+            height: 70vw;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.08), transparent 70%);
+            top: -20%;
+            right: -20%;
+            border-radius: 50%;
+            z-index: 0;
+            animation: slowDrift 24s infinite alternate;
+        }
+
+        .bg-glow-2 {
+            left: -15%;
+            bottom: -20%;
+            top: auto;
+            background: radial-gradient(circle, rgba(114, 46, 209, 0.1), transparent 70%);
+            animation: slowDrift 20s infinite alternate-reverse;
+        }
+
+        @keyframes slowDrift {
+            0% { transform: translate(0, 0) scale(1); opacity: 0.4; }
+            100% { transform: translate(6%, 8%) scale(1.2); opacity: 0.7; }
+        }
+
+        /* main glass card container */
+        .earn-container {
+            max-width: 1300px;
+            width: 100%;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* top user bar */
+        .user-bar {
+            background: rgba(15, 25, 45, 0.65);
+            backdrop-filter: blur(14px);
+            border-radius: 60px;
+            padding: 0.8rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+            margin-bottom: 2rem;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-area i {
+            font-size: 2rem;
+            color: #0ff;
+            text-shadow: 0 0 5px cyan;
+        }
+
+        .logo-area h2 {
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff, #0ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .auth-area {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .user-greeting {
+            color: #ddd;
+            font-weight: 500;
+            font-size: 0.9rem;
+            background: rgba(0,0,0,0.5);
+            padding: 6px 18px;
+            border-radius: 40px;
+            backdrop-filter: blur(4px);
+        }
+
+        .sign-btn {
+            background: linear-gradient(95deg, #2b6ef0, #1a2bcb);
+            border: none;
+            padding: 10px 24px;
+            border-radius: 40px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 4px 12px rgba(0,100,255,0.3);
+            font-size: 0.85rem;
+        }
+
+        .sign-btn:hover {
+            transform: scale(1.02);
+            background: linear-gradient(95deg, #3f7eff, #2a3fdf);
+            box-shadow: 0 6px 16px rgba(0,160,255,0.4);
+        }
+
+        /* main grid layout */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.8rem;
+        }
+
+        @media (max-width: 850px) {
+            .dashboard { grid-template-columns: 1fr; gap: 2rem; }
+        }
+
+        /* glass cards */
+        .glass-card {
+            background: rgba(12, 20, 35, 0.55);
+            backdrop-filter: blur(16px);
+            border-radius: 2rem;
+            padding: 1.8rem;
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            box-shadow: 0 25px 40px rgba(0,0,0,0.3);
+            transition: all 0.2s ease;
+        }
+
+        .earn-card {
+            background: rgba(8, 18, 32, 0.7);
+        }
+
+        .balance-panel {
+            background: linear-gradient(145deg, rgba(0, 20, 45, 0.7), rgba(0, 0, 20, 0.7));
+            border-left: 4px solid #0ff;
+        }
+
+        .balance-amount {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #F0F9FF, #00e0ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            letter-spacing: -1px;
+        }
+
+        .random-text-box {
+            background: rgba(0, 0, 0, 0.45);
+            border-radius: 1.5rem;
+            padding: 1.2rem;
+            text-align: center;
+            margin: 20px 0;
+            border: 1px dashed #0ff8;
+        }
+
+        .random-word {
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            word-break: break-word;
+            background: linear-gradient(125deg, #fff, #9effff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 8px rgba(0,255,255,0.3);
+        }
+
+        .type-input {
+            width: 100%;
+            padding: 14px 18px;
+            border-radius: 60px;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(0,255,255,0.4);
+            color: white;
+            font-size: 1rem;
+            margin: 15px 0;
+            transition: 0.2s;
+        }
+
+        .type-input:focus {
+            outline: none;
+            border-color: #0ff;
+            box-shadow: 0 0 12px #0ff4;
+        }
+
+        .earn-btn {
+            background: linear-gradient(95deg, #f0a500, #f05e00);
+            width: 100%;
+            padding: 14px;
+            font-weight: 800;
+            border: none;
+            border-radius: 60px;
+            color: white;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 8px 20px rgba(240, 94, 0, 0.3);
+        }
+
+        .earn-btn:active { transform: scale(0.98); }
+        .earn-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+        .payout-group {
+            margin-top: 1.5rem;
+        }
+
+        .paypal-input {
+            background: rgba(255,255,245,0.1);
+            border: 1px solid #ffb347;
+            border-radius: 50px;
+            padding: 12px 18px;
+            width: 100%;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .payout-btn {
+            background: linear-gradient(95deg, #12c2e9, #c471ed);
+            width: 100%;
+            border: none;
+            padding: 12px;
+            border-radius: 50px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .info-note {
+            background: #0a1120aa;
+            border-radius: 20px;
+            padding: 12px 16px;
+            margin-top: 18px;
+            font-size: 0.8rem;
+            border-left: 3px solid #0ff;
+        }
+
+        .toast-msg {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #111c2fdd;
+            backdrop-filter: blur(12px);
+            padding: 12px 26px;
+            border-radius: 50px;
+            color: white;
+            font-weight: 500;
+            z-index: 200;
+            transition: 0.2s;
+            border: 1px solid #0ff;
+            pointer-events: none;
+        }
+
+        .refresh-icon {
+            background: none;
+            border: none;
+            color: #0ff;
+            font-size: 1.2rem;
+            margin-left: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        hr {
+            border-color: #2c3e66;
+            margin: 16px 0;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            color: #9aaec0;
+            font-size: 0.75rem;
+        }
+        i.fa, i.far, i.fas { margin-right: 4px; }
+        button { cursor: pointer; }
+    </style>
+</head>
+<body>
+<div class="bg-glow"></div>
+<div class="bg-glow bg-glow-2"></div>
+
+<div class="earn-container">
+    <!-- USER BAR -->
+    <div class="user-bar">
+        <div class="logo-area">
+            <i class="fas fa-dollar-sign"></i>
+            <h2>EARNFLOW<span style="color:cyan;">.USA</span></h2>
+        </div>
+        <div class="auth-area" id="authSection">
+            <div class="user-greeting" id="userGreeting">Not signed in</div>
+            <button class="sign-btn" id="googleSignInBtn"><i class="fab fa-google"></i> Sign in with Google</button>
+            <button class="sign-btn" id="signOutBtn" style="display:none; background:#3a3f55;"><i class="fas fa-sign-out-alt"></i> Exit</button>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div class="dashboard">
+        <!-- LEFT: EARN CHALLENGE -->
+        <div class="glass-card earn-card">
+            <div class="flex-between">
+                <h3 style="color:#fff;"><i class="fas fa-keyboard"></i> Type & Earn Challenge</h3>
+                <button id="refreshTextBtn" class="refresh-icon" title="New random text (no earn)"><i class="fas fa-sync-alt"></i></button>
+            </div>
+            <div class="random-text-box">
+                <div style="font-size: 0.8rem; letter-spacing:1px; color:#8aaee0;">🔐 EXACT MATCH (case-insensitive)</div>
+                <div class="random-word" id="randomTextDisplay">loading...</div>
+            </div>
+            <input type="text" id="userInputText" class="type-input" placeholder="Type the exact text above..." autocomplete="off">
+            <button id="submitEarnBtn" class="earn-btn"><i class="fas fa-coins"></i> Verify & Earn $0.001 + Watch Ad</button>
+            <div class="info-note">
+                <i class="fas fa-info-circle"></i> <strong>How it works:</strong> Match the random text → click earn → get <strong>$0.001</strong> + ad opens in new tab (required). New text appears after each successful attempt.
+            </div>
+        </div>
+
+        <!-- RIGHT: BALANCE & PAYOUT -->
+        <div class="glass-card balance-panel">
+            <h3 style="color:#ccf;"><i class="fas fa-wallet"></i> Your Balance (USD)</h3>
+            <div class="balance-amount" id="balanceDisplay">$0.000</div>
+            <div class="info-note" style="margin-top:8px; background:#00000055;">
+                <i class="fas fa-chart-line"></i> Min. Payout: <strong style="color:#0ff;">$2.00</strong> | No VPN / USA friendly | Real-time Firebase
+            </div>
+            <hr>
+            <div class="payout-group">
+                <label style="color:#bbb;"><i class="fab fa-paypal"></i> PayPal Email (Payout)</label>
+                <input type="email" id="paypalEmail" class="paypal-input" placeholder="your@paypal.com" autocomplete="off">
+                <button id="requestPayoutBtn" class="payout-btn"><i class="fas fa-hand-holding-usd"></i> Request Payout ($2 min)</button>
+                <div class="info-note" style="font-size:0.7rem; margin-top:12px;">
+                    ⚡ <strong>Anti-cheat:</strong> VPN usage prohibited | Each correct typing opens an ad (Adsterra) to sustain platform. <br>
+                    ✅ Balance secured via Google Sign-In & Firestore.
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer>
+        <i class="fas fa-shield-alt"></i> 100% Real-time balance | Payout simulation (demo deduction) | USA Target Platform
+    </footer>
+</div>
+
+<div id="toastMessage" class="toast-msg" style="opacity:0; visibility:hidden;">Message</div>
+
+<script>
+    // ---------------------- FIREBASE CONFIG (PROVIDED) -------------------------
+    const firebaseConfig = {
+        apiKey: "AIzaSyBuzpfAzydtNQZHLBaoV3LzsYaIftX4Log",
+        authDomain: "my-earn-web.firebaseapp.com",
+        projectId: "my-earn-web",
+        storageBucket: "my-earn-web.firebasestorage.app",
+        messagingSenderId: "1063905275722",
+        appId: "1:1063905275722:web:9ce997c96c9455e35f9bb3",
+        measurementId: "G-34MKM8TEB4"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // ---------------------- GLOBAL VARIABLES -------------------------
+    let currentUser = null;            // firebase user obj
+    let currentBalance = 0;            // cached (also listener updates)
+    let currentRandomText = "EARNUSA"; // default
+    let isProcessingEarn = false;
+    let unsubscribeUserDoc = null;     // Firestore listener
+
+    // Adsterra direct link (new tab)
+    const ADSTERRA_LINK = "https://shorturl.at/tYgia";
+
+    // ---------- WORD LIST (50+ unique, attractive words/phrases) ----------
+    const wordBank = [
+        "Eagle", "FREEDOM", "STARSHIP", "Velocity", "NEBULA", "Prosper", "Diamond", "THUNDER", 
+        "PHOENIX", "EarnFlow", "GOLDEN", "INFINITY", "RADIANT", "VICTORY", "SUCCESS", "DYNAMO", 
+        "UNITED", "VISIONARY", "FOCUS", "MILLION", "DOLLAR", "TRUST", "BRILLIANT", "LEGEND", 
+        "ORBIT", "ATOMIC", "ZENITH", "PRIME", "QUANTUM", "ELITE", "TITAN", "Heritage", "MOMENTUM",
+        "PURSUIT", "CAPITAL", "AMERICA", "UNLIMITED", "REVENUE", "Boost", "WINNER", "CHAMPION",
+        "RISING", "BEACON", "HORIZON", "FASTLANE", "Aspire", "DESTINY"
+    ];
+    
+    function getRandomText() {
+        return wordBank[Math.floor(Math.random() * wordBank.length)];
+    }
+
+    // Update UI with new random text
+    function setNewRandomText() {
+        currentRandomText = getRandomText();
+        const displaySpan = document.getElementById("randomTextDisplay");
+        if (displaySpan) displaySpan.innerText = currentRandomText;
+    }
+
+    // Refresh text manually (no earn)
+    function manualRefreshText() {
+        if (!currentUser) {
+            showToast("🔒 Sign in to refresh text", 2000);
+            return;
+        }
+        setNewRandomText();
+        showToast("🔄 New challenge text generated!", 1500);
+    }
+
+    // Helper toast
+    function showToast(msg, duration = 2800) {
+        const toast = document.getElementById("toastMessage");
+        toast.innerText = msg;
+        toast.style.opacity = "1";
+        toast.style.visibility = "visible";
+        setTimeout(() => {
+            toast.style.opacity = "0";
+            toast.style.visibility = "hidden";
+        }, duration);
+    }
+
+    // Update balance UI from firestore snapshot
+    function updateBalanceUI(balanceNum) {
+        currentBalance = balanceNum;
+        const balSpan = document.getElementById("balanceDisplay");
+        if (balSpan) balSpan.innerText = `$${balanceNum.toFixed(3)}`;
+    }
+
+    // Listen to user's Firestore document
+    function subscribeToUserBalance(userId) {
+        if (unsubscribeUserDoc) unsubscribeUserDoc();
+        const userDocRef = db.collection("users").doc(userId);
+        unsubscribeUserDoc = userDocRef.onSnapshot((docSnap) => {
+            if (docSnap.exists) {
+                const data = docSnap.data();
+                let bal = typeof data.balance === 'number' ? data.balance : 0;
+                updateBalanceUI(bal);
+            } else {
+                // create document if missing
+                userDocRef.set({ balance: 0, createdAt: firebase.firestore.FieldValue.serverTimestamp() })
+                    .then(() => updateBalanceUI(0))
+                    .catch(err => console.warn(err));
+            }
+        }, (error) => {
+            console.error("Snapshot error:", error);
+            showToast("⚠️ Balance sync error", 2000);
+        });
+    }
+
+    // ---------------------- EARN LOGIC (Correct match, increment, open ad) -----------------
+    async function handleEarnSubmit() {
+        if (!currentUser) {
+            showToast("❌ Please sign in with Google first!", 2500);
+            return;
+        }
+        if (isProcessingEarn) {
+            showToast("⏳ Please wait, processing...", 1200);
+            return;
+        }
+        const userInput = document.getElementById("userInputText").value.trim();
+        if (userInput === "") {
+            showToast("✏️ Type the random text first!", 1800);
+            return;
+        }
+        // case-insensitive compare
+        if (userInput.toLowerCase() !== currentRandomText.toLowerCase()) {
+            showToast(`❌ Incorrect! Expected "${currentRandomText}"`, 2300);
+            return;
+        }
+        isProcessingEarn = true;
+        const earnBtn = document.getElementById("submitEarnBtn");
+        earnBtn.disabled = true;
+        earnBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Processing...';
+
+        try {
+            const userId = currentUser.uid;
+            const userRef = db.collection("users").doc(userId);
+            // Use increment to add $0.001
+            await userRef.update({
+                balance: firebase.firestore.FieldValue.increment(0.001)
+            });
+            // SUCCESS: open Adsterra link in new tab
+            window.open(ADSTERRA_LINK, '_blank');
+            // Change random text after successful earn
+            setNewRandomText();
+            // Clear input field
+            document.getElementById("userInputText").value = "";
+            showToast(`✅ +$0.001 earned! New challenge ready.`, 2000);
+        } catch (err) {
+            console.error("Earn error:", err);
+            showToast(`⚠️ Error: ${err.message || "Failed to update balance"}`, 2500);
+        } finally {
+            isProcessingEarn = false;
+            earnBtn.disabled = false;
+            earnBtn.innerHTML = '<i class="fas fa-coins"></i> Verify & Earn $0.001 + Watch Ad';
+        }
+    }
+
+    // ---------------------- PAYOUT LOGIC (Transaction, min $2, subtract, fake) -----------------
+    async function handlePayout() {
+        if (!currentUser) {
+            showToast("🔐 Sign in to withdraw funds", 2000);
+            return;
+        }
+        const paypal = document.getElementById("paypalEmail").value.trim();
+        if (!paypal || !paypal.includes('@')) {
+            showToast("📧 Please enter a valid PayPal email address.", 2200);
+            return;
+        }
+        const userId = currentUser.uid;
+        const userRef = db.collection("users").doc(userId);
+        
+        // Use transaction to ensure balance >= 2 before deducting exactly $2.00
+        try {
+            await db.runTransaction(async (transaction) => {
+                const doc = await transaction.get(userRef);
+                if (!doc.exists) throw new Error("User data missing");
+                const currentBal = doc.data().balance || 0;
+                if (currentBal < 2.0) {
+                    throw new Error(`Insufficient balance. Minimum $2.00 required. Current: $${currentBal.toFixed(3)}`);
+                }
+                const newBalance = currentBal - 2.0;
+                transaction.update(userRef, { balance: newBalance });
+                return { newBalance, previous: currentBal };
+            });
+            // after success: show fake payout confirmation
+            showToast(`💸 Payout of $2.00 sent to ${paypal} (simulated demo). Balance reduced.`, 4000);
+            document.getElementById("paypalEmail").value = "";
+        } catch (error) {
+            console.error("Payout transaction error:", error);
+            showToast(`🚫 Payout failed: ${error.message}`, 3000);
+        }
+    }
+
+    // ---------------------- GOOGLE SIGN-IN & AUTH STATE -----------------
+    function updateUIBasedOnAuth(user) {
+        const signInBtn = document.getElementById("googleSignInBtn");
+        const signOutBtn = document.getElementById("signOutBtn");
+        const greetingSpan = document.getElementById("userGreeting");
+        const earnBtn = document.getElementById("submitEarnBtn");
+        const refreshBtn = document.getElementById("refreshTextBtn");
+        const payoutBtn = document.getElementById("requestPayoutBtn");
+
+        if (user) {
+            currentUser = user;
+            greetingSpan.innerHTML = `<i class="fas fa-user-circle"></i> ${user.displayName || user.email} | <i class="fas fa-flag-usa"></i> Earn Active`;
+            signInBtn.style.display = "none";
+            signOutBtn.style.display = "inline-flex";
+            // Enable all interactive elements
+            earnBtn.disabled = false;
+            refreshBtn.disabled = false;
+            payoutBtn.disabled = false;
+            document.getElementById("userInputText").disabled = false;
+            // Set random text if not yet
+            if (!currentRandomText || currentRandomText === "loading...") setNewRandomText();
+            else setNewRandomText(); // set fresh anyway
+            // Subscribe to firestore balance
+            subscribeToUserBalance(user.uid);
+        } else {
+            currentUser = null;
+            greetingSpan.innerHTML = '<i class="fas fa-lock"></i> Guest | Sign in to earn';
+            signInBtn.style.display = "inline-flex";
+            signOutBtn.style.display = "none";
+            if (earnBtn) earnBtn.disabled = true;
+            if (refreshBtn) refreshBtn.disabled = true;
+            if (payoutBtn) payoutBtn.disabled = true;
+            document.getElementById("userInputText").disabled = true;
+            document.getElementById("randomTextDisplay").innerText = "🔒 SIGN IN";
+            updateBalanceUI(0);
+            if (unsubscribeUserDoc) {
+                unsubscribeUserDoc();
+                unsubscribeUserDoc = null;
+            }
+        }
+    }
+
+    // Google Sign-In popup
+    function googleSignIn() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.addScope('email');
+        auth.signInWithPopup(provider)
+            .then((result) => {
+                showToast(`Welcome ${result.user.displayName || 'earner'}! Start typing to earn 💰`, 2500);
+            })
+            .catch((error) => {
+                console.error(error);
+                showToast(`Google sign-in error: ${error.message}`, 3000);
+            });
+    }
+
+    function signOutUser() {
+        auth.signOut().then(() => {
+            showToast("Signed out successfully. Data secured.", 1800);
+        }).catch(err => showToast("Sign out error", 1500));
+    }
+
+    // ---------------------- INITIALIZATION & EVENT LISTENERS -----------------
+    document.addEventListener("DOMContentLoaded", () => {
+        // Set default random text before sign-in
+        setNewRandomText();
+        // UI elements
+        const submitBtn = document.getElementById("submitEarnBtn");
+        const payoutBtn = document.getElementById("requestPayoutBtn");
+        const refreshBtn = document.getElementById("refreshTextBtn");
+        const signInGoogle = document.getElementById("googleSignInBtn");
+        const signOutBtnElem = document.getElementById("signOutBtn");
+
+        if (submitBtn) submitBtn.addEventListener("click", handleEarnSubmit);
+        if (payoutBtn) payoutBtn.addEventListener("click", handlePayout);
+        if (refreshBtn) refreshBtn.addEventListener("click", manualRefreshText);
+        if (signInGoogle) signInGoogle.addEventListener("click", googleSignIn);
+        if (signOutBtnElem) signOutBtnElem.addEventListener("click", signOutUser);
+
+        // initial disabled state until auth
+        submitBtn.disabled = true;
+        document.getElementById("userInputText").disabled = true;
+        if (refreshBtn) refreshBtn.disabled = true;
+        if (payoutBtn) payoutBtn.disabled = true;
+
+        // listen to auth state
+        auth.onAuthStateChanged((user) => {
+            updateUIBasedOnAuth(user);
+        });
+    });
+
+    // Helper to keep balance UI if snapshot updates:
+    window.updateBalanceUI = updateBalanceUI;
+    // Extra safe: ensure that random text always fresh after earn, and manual refresh works after sign in
+    // on sign out also reset random text
+    const originalSetNew = setNewRandomText;
+    window.setNewRandomText = setNewRandomText;
+</script>
+</body>
+</html>
